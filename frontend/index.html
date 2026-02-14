@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Incident Commander MVP</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Elasticsearch Incident Commander</h1>
+      <p>Multi-agent incident response simulation dashboard.</p>
+
+      <section class="card">
+        <h2>Run Incident Scenario</h2>
+        <form id="incident-form">
+          <label>
+            Service
+            <input id="service" value="checkout-api" required />
+          </label>
+
+          <label>
+            Severity
+            <select id="severity">
+              <option>low</option>
+              <option>medium</option>
+              <option selected>high</option>
+              <option>critical</option>
+            </select>
+          </label>
+
+          <label>
+            Summary
+            <input id="summary" value="Latency spikes after deploy" required />
+          </label>
+
+          <label>
+            Signals (comma separated)
+            <input id="signals" value="p95 latency > 2.5s,error rate 7%" />
+          </label>
+
+          <label>
+            Recent deploy SHA
+            <input id="sha" value="abc1234" />
+          </label>
+
+          <button type="submit">Run Workflow</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Workflow Output</h2>
+        <pre id="output">Run a scenario to view timeline...</pre>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
