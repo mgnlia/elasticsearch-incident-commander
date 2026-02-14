@@ -1,0 +1,16 @@
+[
+  {
+    "id": "rb-rollback-001",
+    "service": "checkout-api",
+    "trigger": "latency_after_deploy",
+    "action": "rollback_latest_deploy",
+    "risk": "medium"
+  },
+  {
+    "id": "rb-scale-001",
+    "service": "search-api",
+    "trigger": "traffic_spike",
+    "action": "scale_service_replicas",
+    "risk": "low"
+  }
+]

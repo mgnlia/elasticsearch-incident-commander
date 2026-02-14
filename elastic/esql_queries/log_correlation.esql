@@ -1,0 +1,5 @@
+FROM logs-*
+| WHERE service == ?service AND @timestamp > NOW() - 15 minutes
+| STATS errors = COUNT(*) WHERE level == "error", warnings = COUNT(*) WHERE level == "warn" BY host
+| SORT errors DESC
+| LIMIT 20

@@ -1,0 +1,18 @@
+name: remediation-rollback
+version: 1
+steps:
+  - id: validate-change-window
+    action: noop
+    with:
+      note: "Ensure rollback is within approved change policy"
+  - id: trigger-rollback
+    action: webhook
+    with:
+      endpoint: "https://example.internal/deploy/rollback"
+      payload:
+        service: "{{service}}"
+        sha: "{{recent_deploy_sha}}"
+  - id: post-incident-note
+    action: noop
+    with:
+      note: "Rollback initiated. Monitoring recovery for 10 minutes"
