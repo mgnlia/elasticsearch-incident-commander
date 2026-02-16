@@ -39,3 +39,24 @@ When Agent Builder credentials are configured:
 
 - workflow payload is dispatched to configured Agent Builder route
 - response block includes `integration_path` and status details
+
+## Hardening notes (support-lane checkpoint)
+
+### Elasticsearch integration
+
+The `elastic` block now includes phase-specific failures to simplify triage:
+
+- `phase: ping`
+- `phase: create_index`
+- `phase: index_document`
+- `phase: search_recent`
+- `phase: esql_query`
+
+### Agent Builder dispatch
+
+`agent_builder` now validates endpoint format and includes richer telemetry:
+
+- invalid URL detection (`invalid_agent_builder_base_url`)
+- timeout echoed in response (`timeout_seconds`)
+- payload size (`payload_bytes`) on success
+- HTTP error body capture (truncated) for debugging
