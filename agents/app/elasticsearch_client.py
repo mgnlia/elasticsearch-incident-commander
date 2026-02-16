@@ -38,6 +38,18 @@ class ElasticsearchService:
         body = getattr(response, "body", None)
         return body if isinstance(body, dict) else {}
 
+    @staticmethod
+    def _error_response(started: float, phase: str, exc: Exception | None = None) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "enabled": True,
+            "status": "error",
+            "phase": phase,
+            "duration_ms": round((perf_counter() - started) * 1000, 2),
+        }
+        if exc is not None:
+            payload["error"] = str(exc)
+        return payload
+
     def _ensure_index(self) -> dict[str, Any]:
         assert self.client is not None
         response = self.client.options(ignore_status=400).indices.create(
@@ -123,52 +135,63 @@ class ElasticsearchService:
 
         try:
             ping_ok = self.client.ping()
-            if not ping_ok:
-                return {
-                    "enabled": True,
-                    "status": "error",
-                    "error": "elastic_ping_failed",
-                }
-
-            create_result = self._ensure_index()
-            index_result = self._index_incident(incident, result)
-            search_result = self._search_recent(incident.service)
-            esql_result = self._run_esql(incident.service, incident.severity)
-
-            hits = search_result.get("hits", {}).get("hits", [])
-            return {
-                "enabled": True,
-                "status": "ok",
-                "index": self.settings.incidents_index,
-                "duration_ms": round((perf_counter() - started) * 1000, 2),
-                "create_result": {
-                    "acknowledged": create_result.get("acknowledged"),
-                    "index": create_result.get("index", self.settings.incidents_index),
-                },
-                "index_result": {
-                    "result": index_result.get("result"),
-                    "_id": index_result.get("_id"),
-                },
-                "search": {
-                    "hit_count": len(hits),
-                    "latest_incident_ids": [
-                        hit.get("_source", {}).get("incident_id") for hit in hits
-                    ],
-                },
-                "esql": {
-                    "query": (
-                        f"FROM {self.settings.incidents_index} "
-                        "| WHERE service == ? AND severity == ? "
-                        "| STATS incident_count = COUNT(*)"
-                    ),
-                    "columns": esql_result.get("columns", []),
-                    "values": esql_result.get("values", []),
-                },
-            }
         except Exception as exc:  # pragma: no cover - defensive path
-            return {
-                "enabled": True,
-                "status": "error",
-                "duration_ms": round((perf_counter() - started) * 1000, 2),
-                "error": str(exc),
-            }
+            return self._error_response(started, "ping", exc)
+
+        if not ping_ok:
+            return self._error_response(started, "ping", Exception("elastic_ping_failed"))
+
+        try:
+            create_result = self._ensure_index()
+        except Exception as exc:
+            return self._error_response(started, "create_index", exc)
+
+        try:
+            index_result = self._index_incident(incident, result)
+        except Exception as exc:
+            return self._error_response(started, "index_document", exc)
+
+        try:
+            search_result = self._search_recent(incident.service)
+        except Exception as exc:
+            return self._error_response(started, "search_recent", exc)
+
+        try:
+            esql_result = self._run_esql(incident.service, incident.severity)
+        except Exception as exc:
+            return self._error_response(started, "esql_query", exc)
+
+        hits = search_result.get("hits", {}).get("hits", [])
+        latest_incident_ids = [
+            hit.get("_source", {}).get("incident_id")
+            for hit in hits
+            if hit.get("_source", {}).get("incident_id")
+        ]
+
+        return {
+            "enabled": True,
+            "status": "ok",
+            "index": self.settings.incidents_index,
+            "duration_ms": round((perf_counter() - started) * 1000, 2),
+            "create_result": {
+                "acknowledged": create_result.get("acknowledged"),
+                "index": create_result.get("index", self.settings.incidents_index),
+            },
+            "index_result": {
+                "result": index_result.get("result"),
+                "_id": index_result.get("_id"),
+            },
+            "search": {
+                "hit_count": len(hits),
+                "latest_incident_ids": latest_incident_ids,
+            },
+            "esql": {
+                "query": (
+                    f"FROM {self.settings.incidents_index} "
+                    "| WHERE service == ? AND severity == ? "
+                    "| STATS incident_count = COUNT(*)"
+                ),
+                "columns": esql_result.get("columns", []),
+                "values": esql_result.get("values", []),
+            },
+        }
