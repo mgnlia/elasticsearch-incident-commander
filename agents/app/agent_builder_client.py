@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import json
 from typing import Any
-from urllib import error, parse, request
+from urllib import error, request
 
 from .config import Settings
 from .models import IncidentInput, IncidentRunResult
@@ -39,11 +40,11 @@ class AgentBuilderService:
 
         req = request.Request(
             endpoint,
-            data=parse.urlencode({"payload": str(payload)}).encode("utf-8"),
+            data=json.dumps(payload).encode("utf-8"),
             method="POST",
             headers={
                 "Authorization": f"Bearer {self.settings.agent_builder_api_key}",
-                "Content-Type": "application/x-www-form-urlencoded",
+                "Content-Type": "application/json",
             },
         )
 
