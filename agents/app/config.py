@@ -16,6 +16,8 @@ class Settings:
     metrics_index_pattern: str
     agent_builder_base_url: str | None
     agent_builder_api_key: str | None
+    agent_builder_route: str
+    request_timeout_seconds: int
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -28,6 +30,8 @@ class Settings:
             metrics_index_pattern=os.getenv("ELASTIC_METRICS_PATTERN", "metrics-*"),
             agent_builder_base_url=os.getenv("AGENT_BUILDER_BASE_URL"),
             agent_builder_api_key=os.getenv("AGENT_BUILDER_API_KEY"),
+            agent_builder_route=os.getenv("AGENT_BUILDER_ROUTE", "/api/incident/execute"),
+            request_timeout_seconds=int(os.getenv("REQUEST_TIMEOUT_SECONDS", "10")),
         )
 
     @property
