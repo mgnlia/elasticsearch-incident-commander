@@ -1,5 +1,6 @@
+from typing import Any, Literal
+
 from pydantic import BaseModel, Field
-from typing import Literal
 
 Severity = Literal["low", "medium", "high", "critical"]
 
@@ -15,7 +16,7 @@ class IncidentInput(BaseModel):
 class AgentStep(BaseModel):
     agent: str
     action: str
-    output: dict
+    output: dict[str, Any]
 
 
 class IncidentRunResult(BaseModel):
@@ -26,3 +27,5 @@ class IncidentRunResult(BaseModel):
     timeline: list[AgentStep]
     recommendation: str
     stakeholder_update: str
+    elastic: dict[str, Any] | None = None
+    agent_builder: dict[str, Any] | None = None
