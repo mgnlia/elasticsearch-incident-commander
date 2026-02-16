@@ -1,18 +1,25 @@
 # Elasticsearch Incident Commander
 
-A runnable multi-agent incident response MVP for the Elasticsearch Agent Builder sprint lane.
+A runnable multi-agent incident response MVP with concrete Elasticsearch and Agent Builder integration points.
 
-## What this checkpoint includes
+## Delivered in this checkpoint
 
-- Python FastAPI backend with a **4-agent workflow**:
+- FastAPI backend (`agents/`) with deterministic **4-agent workflow**:
   - Triage Agent
   - Diagnosis Agent
   - Remediation Agent
   - Communication Agent
-- Deterministic workflow orchestration endpoint: `POST /incidents/run`
-- Static frontend dashboard (`frontend/`) to simulate incidents and render timeline output
-- Test coverage for health and workflow contracts
-- Vercel-ready frontend config (`frontend/vercel.json`)
+- Integration endpoint: `POST /incidents/run`
+- **Elasticsearch integration wiring** (when credentials are configured):
+  1. `indices.create` (idempotent create with ignore 400)
+  2. `index` (incident document write)
+  3. `search` (recent incident retrieval)
+  4. ES|QL query (`STATS incident_count = COUNT(*)`)
+- **Agent Builder integration path** (when configured):
+  - outbound POST to `AGENT_BUILDER_BASE_URL + AGENT_BUILDER_ROUTE`
+  - bearer auth via `AGENT_BUILDER_API_KEY`
+- Frontend dashboard (`frontend/`) with Vercel fallback API route (`/api/incidents/run`)
+- CI workflow running backend tests with `uv`
 
 ## Repository
 
@@ -20,14 +27,17 @@ A runnable multi-agent incident response MVP for the Elasticsearch Agent Builder
 
 ## Architecture
 
-```
+```text
 frontend (static UI)
-    ↓ POST /incidents/run
-agents FastAPI service
-    ├── triage
-    ├── diagnosis
-    ├── remediation
-    └── communication
+   └── POST /api/incidents/run (Vercel function) OR localhost backend
+            ↓
+        FastAPI backend (/incidents/run)
+            ├── triage
+            ├── diagnosis
+            ├── remediation
+            ├── communication
+            ├── Elasticsearch create/index/search/ES|QL
+            └── Agent Builder dispatch
 ```
 
 ## Quickstart
@@ -36,7 +46,7 @@ agents FastAPI service
 
 ```bash
 cd agents
-uv sync
+uv sync --dev
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
@@ -47,7 +57,7 @@ cd agents
 uv run pytest
 ```
 
-### Frontend
+### Frontend local
 
 ```bash
 cd frontend
@@ -55,7 +65,7 @@ python -m http.server 8081
 # open http://localhost:8081
 ```
 
-By default frontend calls `http://localhost:8000`.
+By default local frontend calls `http://localhost:8000/incidents/run`.
 
 ## API
 
@@ -63,7 +73,10 @@ By default frontend calls `http://localhost:8000`.
 Returns service health.
 
 ### `POST /incidents/run`
-Runs end-to-end multi-agent incident workflow.
+Runs end-to-end multi-agent incident workflow and attaches integration status blocks:
+
+- `elastic`: `ok | skipped | error`
+- `agent_builder`: `ok | skipped | error`
 
 Example payload:
 
@@ -76,12 +89,3 @@ Example payload:
   "recent_deploy_sha": "abc1234"
 }
 ```
-
-## Execution ETA table (checkpoint view)
-
-| Milestone | Status | ETA |
-|---|---|---|
-| Repo bootstrap + runnable workflow | ✅ complete | now |
-| Elasticsearch data/index wiring | ⏳ next | +6h |
-| Agent Builder tool integration | ⏳ next | +12h |
-| Demo scenario recording package | ⏳ next | +24h |

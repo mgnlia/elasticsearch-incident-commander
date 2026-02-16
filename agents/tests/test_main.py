@@ -14,7 +14,7 @@ def test_health_ok() -> None:
     assert response.json() == {"status": "ok"}
 
 
-def test_incident_workflow_contract() -> None:
+def test_incident_workflow_contract_with_integration_fields() -> None:
     payload = {
         "service": "checkout-api",
         "severity": "high",
@@ -38,6 +38,12 @@ def test_incident_workflow_contract() -> None:
         "remediation",
         "communication",
     ]
+
+    assert body["elastic"]["status"] == "skipped"
+    assert body["elastic"]["reason"] == "elastic_not_configured"
+    assert body["agent_builder"]["status"] == "skipped"
+    assert body["agent_builder"]["reason"] == "agent_builder_not_configured"
+    assert body["agent_builder"]["integration_path"] == "/api/incident/execute"
 
 
 def test_critical_incident_triggers_rollback_action() -> None:

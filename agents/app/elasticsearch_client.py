@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from time import perf_counter
 from typing import Any
 
 from elasticsearch import Elasticsearch
@@ -118,7 +119,17 @@ class ElasticsearchService:
                 "reason": "elastic_not_configured",
             }
 
+        started = perf_counter()
+
         try:
+            ping_ok = self.client.ping()
+            if not ping_ok:
+                return {
+                    "enabled": True,
+                    "status": "error",
+                    "error": "elastic_ping_failed",
+                }
+
             create_result = self._ensure_index()
             index_result = self._index_incident(incident, result)
             search_result = self._search_recent(incident.service)
@@ -129,7 +140,11 @@ class ElasticsearchService:
                 "enabled": True,
                 "status": "ok",
                 "index": self.settings.incidents_index,
-                "create_result": create_result,
+                "duration_ms": round((perf_counter() - started) * 1000, 2),
+                "create_result": {
+                    "acknowledged": create_result.get("acknowledged"),
+                    "index": create_result.get("index", self.settings.incidents_index),
+                },
                 "index_result": {
                     "result": index_result.get("result"),
                     "_id": index_result.get("_id"),
@@ -141,6 +156,11 @@ class ElasticsearchService:
                     ],
                 },
                 "esql": {
+                    "query": (
+                        f"FROM {self.settings.incidents_index} "
+                        "| WHERE service == ? AND severity == ? "
+                        "| STATS incident_count = COUNT(*)"
+                    ),
                     "columns": esql_result.get("columns", []),
                     "values": esql_result.get("values", []),
                 },
@@ -149,5 +169,6 @@ class ElasticsearchService:
             return {
                 "enabled": True,
                 "status": "error",
+                "duration_ms": round((perf_counter() - started) * 1000, 2),
                 "error": str(exc),
             }

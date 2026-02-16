@@ -1,7 +1,12 @@
 const form = document.getElementById('incident-form');
 const output = document.getElementById('output');
 
-const API_BASE = window.INCIDENT_API_BASE || 'http://localhost:8000';
+const LOCAL_ENDPOINT = 'http://localhost:8000/incidents/run';
+const VERCEL_FALLBACK_ENDPOINT = '/api/incidents/run';
+
+const RUN_ENDPOINT =
+  window.INCIDENT_RUN_ENDPOINT ||
+  (window.location.hostname === 'localhost' ? LOCAL_ENDPOINT : VERCEL_FALLBACK_ENDPOINT);
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -20,7 +25,7 @@ form.addEventListener('submit', async (e) => {
   };
 
   try {
-    const res = await fetch(`${API_BASE}/incidents/run`, {
+    const res = await fetch(RUN_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
