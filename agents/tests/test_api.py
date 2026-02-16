@@ -29,3 +29,19 @@ def test_run_incident_workflow() -> None:
     assert len(body["timeline"]) == 4
     assert body["timeline"][0]["agent"] == "triage"
     assert "rollback" in body["recommendation"]
+
+    # Default CI/runtime expectation without secrets.
+    assert body["elastic"]["status"] == "skipped"
+    assert body["agent_builder"]["status"] == "skipped"
+
+
+def test_run_incident_rejects_invalid_payload() -> None:
+    payload = {
+        "service": "a",
+        "severity": "urgent",  # invalid enum
+        "summary": "bad",
+        "signals": [],
+    }
+
+    r = client.post("/incidents/run", json=payload)
+    assert r.status_code == 422
